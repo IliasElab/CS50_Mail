@@ -41,7 +41,29 @@ function compose_email() {
 }
 
 function load_mailbox(mailbox) {
-  
+  fetch(`/emails/${mailbox}`)
+  .then(response => response.json())
+  .then(emails => { //emails = array of different email
+      // Print emails
+      console.log(emails);
+
+      emails.forEach(email => {
+        let mail = document.createElement('div');
+        mail.className = 'mail';
+        mail.style.border = '2px solid'
+        mail.style.margin = '8px';
+        if (!email.read){
+          mail.style.background = 'gray';
+        }
+        mail.innerHTML = `
+        <h4 style = 'float: left; width: 200px;'>${email.subject}</h4>
+        <p style = 'float: left;'>Sent by : ${email.sender}</p>
+        <p style = 'text-align:right; margin-right: 10px;'>${email.timestamp}</p>
+        `
+        document.querySelector('#emails-view').append(mail)
+      })
+  });
+
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
   document.querySelector('#compose-view').style.display = 'none';
