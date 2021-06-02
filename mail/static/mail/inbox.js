@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     compose_form()
   }
    
-/*//Not working because buttos are loaded dynamically
+/*//Not working because buttons are loaded dynamically
 //So they do not exist in the DOM at this point
   console.log(document.querySelectorAll('.mail'));
 
@@ -24,13 +24,31 @@ document.addEventListener('DOMContentLoaded', function() {
   load_mailbox('inbox');
 });
 
-function load_mail(id) {
+function archiving(id, val) {
+  if (typeof val == "boolean"){
+    fetch(`/emails/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+          archived: val
+      })
+    })
+    //To wait the fetch is complete, if we remove those lines, sometimes load_mailbox still show the just archived mail
+    setTimeout(() => {
+      load_mailbox('inbox');
+    }, 50);
+  }
+}
+
+
+function load_mail(id, canarchive) {
   fetch(`/emails/${id}`)
   .then(response => response.json())
   .then(email => {
       // Print email
+      //console.log(email)
+
       document.querySelector('#mail-view').innerHTML = `<div>
-        <h2>${email.subject}</h4>
+        <h2>${email.subject}</h2>
         <p>Sent by : ${email.sender}, the ${email.timestamp}</p>
         <p>Sent to : ${email.recipients}</p>
         <br >
@@ -44,6 +62,26 @@ function load_mail(id) {
               read: true
           })
         });
+      }
+
+      if(canarchive){
+        let archive = document.createElement('button');
+        archive.style.float = 'left';
+        //archive.style.width = '50px';
+  
+        if(email.archived){
+          archive.innerHTML = "Unarchive"
+          archive.addEventListener('click', function() {
+            archiving(email.id, false)
+          });
+        } else {
+          archive.innerHTML = "Archive"
+          archive.addEventListener('click', function() {
+            archiving(email.id, true)
+          });
+        }
+  
+        document.querySelector('#mail-view').appendChild(archive)
       }
       
   });
@@ -77,7 +115,6 @@ function compose_email() {
   document.querySelector('#mail-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
   
-
   // Clear out composition fields
   document.querySelector('#compose-recipients').value = '';
   document.querySelector('#compose-subject').value = '';
@@ -91,33 +128,36 @@ function load_mailbox(mailbox) {
       // Print emails
       //console.log(emails);
 
-      emails.forEach(email => {
-        let mail = document.createElement('button');
-        mail.className = 'mail';
-        //mail.id = email.id;
-        mail.style.width = '80%';
-        mail.style.margin = '2px';
-        mail.addEventListener('click', function() {
-          load_mail(email.id)
-        });
+    emails.forEach(email => {
+      const canarchive = !(mailbox === 'sent');
 
-        if (!email.read){
-          mail.style.background = 'lightgray';
-        } else {
-          mail.style.background = 'whitesmoke';
-        }
-
-
-        mail.innerHTML = `<div>
-          <h4 style = 'float: left; width: 200px;'>${email.subject}</h4>
-          <p style = 'float: left;'>Sent by : ${email.sender}</p>
-          <p style = 'text-align:right; margin-right: 10px;'>${email.timestamp}</p>
-          </div>`;
-        //<button id="archived">Archived</button>
-
-        document.querySelector('#emails-view').appendChild(mail);
-        //console.log(email)
+      let mail = document.createElement('button');
+      mail.className = 'mail';
+      //mail.id = email.id;
+      mail.style.width = '80%';
+      mail.style.margin = '2px';
+      
+      mail.addEventListener('click', function() {
+        load_mail(email.id, canarchive)
       });
+
+      if (!email.read){
+        mail.style.background = 'lightgray';
+      } else {
+        mail.style.background = 'whitesmoke';
+      }
+
+
+      mail.innerHTML = `<div>
+        <h4 style = 'float: left; width: 200px;'>${email.subject}</h4>
+        <p style = 'float: left;'>Sent by : ${email.sender}</p>
+        <p style = 'text-align:right; margin-right: 10px;'>${email.timestamp}</p>
+        </div>`;
+      //<button id="archived">Archived</button>
+
+      document.querySelector('#emails-view').appendChild(mail);
+      //console.log(email)
+    });
   });
 
   // Show the mailbox and hide other views
@@ -128,3 +168,4 @@ function load_mailbox(mailbox) {
   // Show the mailbox name
   document.querySelector('#emails-view').innerHTML = `<h3>${mailbox.charAt(0).toUpperCase() + mailbox.slice(1)}</h3>`;
 }
+
