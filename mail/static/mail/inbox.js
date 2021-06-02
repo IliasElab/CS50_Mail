@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#inbox').addEventListener('click', () => load_mailbox('inbox'));
   document.querySelector('#sent').addEventListener('click', () => load_mailbox('sent'));
   document.querySelector('#archived').addEventListener('click', () => load_mailbox('archive'));
-  document.querySelector('#compose').addEventListener('click', compose_email);
+  document.querySelector('#compose').addEventListener('click', () => compose_email());
 
   document.querySelector('#compose-form').onsubmit = () => {
     compose_form()
@@ -33,14 +33,14 @@ function archiving(id, val) {
       })
     })
     //To wait the fetch is complete, if we remove those lines, sometimes load_mailbox still show the just archived mail
-    setTimeout(() => {
+    .then(() => {
       load_mailbox('inbox');
-    }, 50);
+    });
   }
 }
 
 
-function load_mail(id, canarchive) {
+function load_mail(id, notsent) {
   fetch(`/emails/${id}`)
   .then(response => response.json())
   .then(email => {
@@ -64,11 +64,9 @@ function load_mail(id, canarchive) {
         });
       }
 
-      if(canarchive){
+      if(notsent === true){
         let archive = document.createElement('button');
-        archive.style.float = 'left';
-        //archive.style.width = '50px';
-  
+
         if(email.archived){
           archive.innerHTML = "Unarchive"
           archive.addEventListener('click', function() {
@@ -82,6 +80,20 @@ function load_mail(id, canarchive) {
         }
   
         document.querySelector('#mail-view').appendChild(archive)
+
+        let reply = document.createElement('button');
+        let subject = email.subject;
+
+        if(! (subject.substring(0, 4) == 'Re: ')){
+          subject = `Re: ${subject}`;
+        }
+
+        reply.innerHTML = "Reply"
+        reply.addEventListener('click', function() {
+          compose_email(email.sender, subject, `"On ${email.timestamp} ${email.sender} wrote :" \n${email.body}`)
+        });
+
+        document.querySelector('#mail-view').appendChild(reply)
       }
       
   });
@@ -101,24 +113,24 @@ function compose_form() {
   })
   .then(response => response.json())
   .then(result => {
-      // Print result*/
+      // Print result
       //console.log(result);
       load_mailbox('sent');
   });
   return false;
 }
 
-function compose_email() {
+function compose_email(recipients = '', subject = '', body = '') {
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
   document.querySelector('#mail-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
   
-  // Clear out composition fields
-  document.querySelector('#compose-recipients').value = '';
-  document.querySelector('#compose-subject').value = '';
-  document.querySelector('#compose-body').value = '';
+  // Fill or Clear out composition fields
+  document.querySelector('#compose-recipients').value = recipients;
+  document.querySelector('#compose-subject').value = subject;
+  document.querySelector('#compose-body').value = body;
 }
 
 function load_mailbox(mailbox) {
@@ -129,16 +141,15 @@ function load_mailbox(mailbox) {
       //console.log(emails);
 
     emails.forEach(email => {
-      const canarchive = !(mailbox === 'sent');
+      const notsent = !(mailbox === 'sent');
 
       let mail = document.createElement('button');
       mail.className = 'mail';
-      //mail.id = email.id;
       mail.style.width = '80%';
       mail.style.margin = '2px';
       
       mail.addEventListener('click', function() {
-        load_mail(email.id, canarchive)
+        load_mail(email.id, notsent)
       });
 
       if (!email.read){
@@ -153,10 +164,8 @@ function load_mailbox(mailbox) {
         <p style = 'float: left;'>Sent by : ${email.sender}</p>
         <p style = 'text-align:right; margin-right: 10px;'>${email.timestamp}</p>
         </div>`;
-      //<button id="archived">Archived</button>
 
       document.querySelector('#emails-view').appendChild(mail);
-      //console.log(email)
     });
   });
 
