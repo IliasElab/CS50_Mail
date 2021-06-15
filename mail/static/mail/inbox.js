@@ -160,9 +160,9 @@ function load_mailbox(mailbox) {
 
 
       mail.innerHTML = `<div>
-        <h4 style = 'float: left; width: 200px;'>${email.subject}</h4>
+        <h4 style = 'float: left; width: 350px;'>${email.subject.substring(0,25)}</h4>
         <p style = 'float: left;'>Sent by : ${email.sender}</p>
-        <p style = 'text-align:right; margin-right: 10px;'>${email.timestamp}</p>
+        <p style = 'text-align:right; margin-right: 8px;'>${email.timestamp}</p>
         </div>`;
 
       document.querySelector('#emails-view').appendChild(mail);
